@@ -89,15 +89,26 @@ FROM ProductSales
 WHERE units_sold = (SELECT MAX(units_sold) FROM ProductSales);
 
 -- 9. Complex business query: customer + orders + sales + payment status.
-SELECT c.customer_id, c.customer_name,
+-- Sales and payments are aggregated per order first to avoid multiplication
+-- when an order contains multiple detail rows or payment records.
+SELECT c.customer_id,
+       c.customer_name,
        COUNT(DISTINCT o.order_id) AS total_orders,
-       COALESCE(SUM(od.subtotal), 0) AS purchase_amount,
-       COALESCE(SUM(pay.amount), 0) AS paid_amount,
-       COALESCE(SUM(od.subtotal), 0) - COALESCE(SUM(pay.amount), 0) AS balance_amount
+       COALESCE(SUM(os.order_sales), 0) AS purchase_amount,
+       COALESCE(SUM(op.paid_amount), 0) AS paid_amount,
+       COALESCE(SUM(os.order_sales), 0) - COALESCE(SUM(op.paid_amount), 0) AS balance_amount
 FROM Customer c
 LEFT JOIN Orders o ON c.customer_id = o.customer_id
-LEFT JOIN Order_Details od ON o.order_id = od.order_id
-LEFT JOIN Payment pay ON o.order_id = pay.order_id
+LEFT JOIN (
+    SELECT order_id, SUM(subtotal) AS order_sales
+    FROM Order_Details
+    GROUP BY order_id
+) os ON o.order_id = os.order_id
+LEFT JOIN (
+    SELECT order_id, SUM(amount) AS paid_amount
+    FROM Payment
+    GROUP BY order_id
+) op ON o.order_id = op.order_id
 GROUP BY c.customer_id, c.customer_name
 ORDER BY purchase_amount DESC;
 
