@@ -62,9 +62,8 @@ ORDER BY sales_amount DESC;
 -- 7. Multi-table customer report.
 SELECT c.customer_id, c.customer_name,
        COUNT(DISTINCT o.order_id) AS order_count,
-       COUNT(od.order_detail_id) AS line_items,
-       COALESCE(SUM(od.subtotal), 0) AS purchase_amount,
-       COALESCE(AVG(o.total_amount), 0) AS average_order_amount
+       COUNT(DISTINCT od.order_detail_id) AS line_items,
+       COALESCE(SUM(od.subtotal), 0) AS purchase_amount
 FROM Customer c
 LEFT JOIN Orders o ON c.customer_id = o.customer_id
 LEFT JOIN Order_Details od ON o.order_id = od.order_id
